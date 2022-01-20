@@ -2,6 +2,8 @@ package com.batch.hellospringbatch.job
 
 import com.batch.hellospringbatch.core.domain.PlainText
 import com.batch.hellospringbatch.core.domain.PlainTextRepository
+import com.batch.hellospringbatch.core.domain.ResultText
+import com.batch.hellospringbatch.core.domain.ResultTextRepository
 import org.springframework.batch.core.Job
 import org.springframework.batch.core.Step
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory
@@ -23,7 +25,8 @@ import java.util.*
 class PlainTextJobConfig(
     private val jobBuilderFactory: JobBuilderFactory,
     private val stepBuilderFactory: StepBuilderFactory,
-    private val plainTextRepository: PlainTextRepository
+    private val plainTextRepository: PlainTextRepository,
+    private val resultTextRepository: ResultTextRepository
 ) {
 
     @Bean("plainTextJob")
@@ -66,7 +69,7 @@ class PlainTextJobConfig(
     @Bean
     fun plainTextWriter(): ItemWriter<String> =
         ItemWriter { items ->
-            items.forEach { println(it) }
+            items.forEach { resultTextRepository.save(ResultText(text = it)) }
             println("==== chunk is finished ====")
         }
 }
