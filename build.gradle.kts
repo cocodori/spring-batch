@@ -29,10 +29,15 @@ dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 	implementation("mysql:mysql-connector-java:8.0.28")
+	implementation("io.github.microutils:kotlin-logging:1.12.5")
+
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
+
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.springframework.batch:spring-batch-test")
+
 	runtimeOnly("com.h2database:h2")
+
 }
 
 tasks.withType<KotlinCompile> {
