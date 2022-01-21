@@ -14,11 +14,16 @@ import org.springframework.batch.item.ItemProcessor
 import org.springframework.batch.item.ItemWriter
 import org.springframework.batch.item.adapter.ItemProcessorAdapter
 import org.springframework.batch.item.file.FlatFileItemReader
+import org.springframework.batch.item.file.FlatFileItemWriter
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder
+import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder
+import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor
+import org.springframework.batch.item.file.transform.DelimitedLineAggregator
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.io.FileSystemResource
+import java.io.File
 
 @Configuration
 class FlatFileJobConfig(
@@ -36,14 +41,37 @@ class FlatFileJobConfig(
     @Bean
     fun flatFileStep(
         playerFileItemReader: FlatFileItemReader<PlayerDto>,
-        itemProcessorAdapter: ItemProcessorAdapter<PlayerDto, PlayerSalaryDto>
+        itemProcessorAdapter: ItemProcessorAdapter<PlayerDto, PlayerSalaryDto>,
+        playerFileItemWriter: FlatFileItemWriter<PlayerSalaryDto>
     ): Step =
         stepBuilderFactory["flatFileStep"]
             .chunk<PlayerDto, PlayerSalaryDto>(5)
             .reader(playerFileItemReader)
             .processor(itemProcessorAdapter)
-            .writer { it.forEach { println(it) } }
+            .writer(playerFileItemWriter)
             .build()
+
+    @StepScope
+    @Bean
+    fun playerFileItemWriter(): FlatFileItemWriter<PlayerSalaryDto> {
+        val fieldExtractor: BeanWrapperFieldExtractor<PlayerSalaryDto> = BeanWrapperFieldExtractor()
+        fieldExtractor.setNames(arrayOf("id", "firstName", "lastName", "salary"))
+        fieldExtractor.afterPropertiesSet()
+
+        val lineAggregator: DelimitedLineAggregator<PlayerSalaryDto> = DelimitedLineAggregator()
+        lineAggregator.setDelimiter("\t")
+        lineAggregator.setFieldExtractor(fieldExtractor)
+
+        //기존 파일이 있으면 덮어쓴다.
+        File("player-salary-list.txt").createNewFile()
+        val resource = FileSystemResource("player-salary-list.txt")
+
+        return FlatFileItemWriterBuilder<PlayerSalaryDto>()
+            .name("platFileItemWriter")
+            .resource(resource)
+            .lineAggregator(lineAggregator)
+            .build()
+    }
 
     @StepScope
     @Bean
