@@ -2,8 +2,7 @@ package com.batch.hellospringbatch.job
 
 import com.batch.hellospringbatch.job.validator.LocalDateParameterValidator
 import mu.KotlinLogging
-import org.springframework.batch.core.Job
-import org.springframework.batch.core.Step
+import org.springframework.batch.core.*
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory
 import org.springframework.batch.core.configuration.annotation.JobScope
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory
@@ -14,6 +13,7 @@ import org.springframework.batch.repeat.RepeatStatus
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import java.lang.RuntimeException
 
 @Configuration
 class AdvancedJobConfig(
@@ -23,12 +23,31 @@ class AdvancedJobConfig(
     val log = KotlinLogging.logger {}
 
     @Bean
-    fun advancedJob(advancedStep: Step): Job =
+    fun advancedJob(jobExecutionListener: JobExecutionListener, advancedStep: Step): Job =
         jobBuilderFactory["advancedJob"]
             .incrementer(RunIdIncrementer())
             .validator(LocalDateParameterValidator("targetDate"))
+            .listener(jobExecutionListener)
             .start(advancedStep)
             .build()
+
+    @JobScope
+    @Bean
+    fun jobExecutionListener(): JobExecutionListener =
+        object : JobExecutionListener {
+            override fun beforeJob(jobExecution: JobExecution) {
+                log.info { "[JobExecutionListener#beforeJob] jobExecution is ${jobExecution.status}" }
+            }
+
+            override fun afterJob(jobExecution: JobExecution) {
+                log.info { "[JobExecutionListener#afterJob] jobExecution is ${jobExecution.status}" }
+                if (jobExecution.status == BatchStatus.FAILED) {
+                    log.error { "[JobExecutionListener#afterJob] JobExecution is FAILED!!! RECOVER ASAP" }
+                    //Notification~
+                }
+            }
+        }
+
 
     @JobScope
     @Bean
@@ -42,6 +61,9 @@ class AdvancedJobConfig(
     fun advancedTasklet(@Value("#{jobParameters['targetDate']}")targetDate: String) =
         Tasklet { contribution, chunkContext ->
             log.info { "[AdvancedJobConfig] JobParameter - targetDate = $targetDate" }
+
+            throw RuntimeException()
+
             log.info { "[AdvancedJobConfig] executed advancedTasklet" }
             RepeatStatus.FINISHED
         }
