@@ -51,18 +51,35 @@ class AdvancedJobConfig(
 
     @JobScope
     @Bean
-    fun advancedStep(advancedTasklet: Tasklet) =
-        stepBuilderFactory["advancedStep"]
+    fun advancedStep(
+        advancedTasklet: Tasklet,
+        stepExecutionListener: StepExecutionListener
+    ) = stepBuilderFactory["advancedStep"]
             .tasklet(advancedTasklet)
+            .listener(stepExecutionListener)
             .build()
+
+    @StepScope
+    @Bean
+    fun stepExecutionListener(): StepExecutionListener {
+        return object: StepExecutionListener {
+            override fun beforeStep(stepExecution: StepExecution) {
+                log.info { "[StepExecutionListener#beforeStep] stepExecution is ${stepExecution.status}" }
+            }
+
+            override fun afterStep(stepExecution: StepExecution): ExitStatus {
+                log.info { "[StepExecutionListener#afterStep] stepExecution is ${stepExecution.status}" }
+
+                return stepExecution.exitStatus
+            }
+        }
+    }
 
     @StepScope
     @Bean
     fun advancedTasklet(@Value("#{jobParameters['targetDate']}")targetDate: String) =
         Tasklet { contribution, chunkContext ->
             log.info { "[AdvancedJobConfig] JobParameter - targetDate = $targetDate" }
-
-            throw RuntimeException()
 
             log.info { "[AdvancedJobConfig] executed advancedTasklet" }
             RepeatStatus.FINISHED
