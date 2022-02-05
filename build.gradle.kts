@@ -35,6 +35,7 @@ dependencies {
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.springframework.batch:spring-batch-test")
+	testImplementation("org.mockito:mockito-inline:3.8.0")
 
 	runtimeOnly("com.h2database:h2")
 
